@@ -1,0 +1,75 @@
+<!doctype <!DOCTYPE html>
+<html>
+<head>
+	<title>mqtt_test</title>
+	<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+	<script src="mqttws31-min.js"></script>
+	<script type="text/javascript">
+
+		var maxRows = 60;
+		var dataTable, chart, options;
+		var chartsInitialized = false;
+
+		google.charts.load('current', {packages: ['corechart', 'line']});
+		google.charts.setOnLoadCallback(initChart);
+		
+		// Create a client instance 18.111.103.72
+		//client = new Paho.MQTT.Client("fe80::a3:4eff:fe16:80d1", 1883,'/mqtt', "bruce");
+		client = new Paho.MQTT.Client('162.243.219.88', 9001, "bruce");
+
+		// set callback handlers
+		client.onConnectionLost = onConnectionLost;
+		client.onMessageArrived = onMessageArrived;
+		
+		// connect the client
+		client.connect({onSuccess:onConnect});
+		
+		
+		// called when the client connects
+		function onConnect() {
+		  // Once a connection has been made, make a subscription and send a message.
+		  console.log("onConnect");
+		  client.subscribe("tesselData");
+		}
+		
+		// called when the client loses its connection
+		function onConnectionLost(responseObject) {
+		  if (responseObject.errorCode !== 0) {
+		    console.log("onConnectionLost:"+responseObject.errorMessage);
+		  }
+		}
+		
+		// called when a message arrives
+		function onMessageArrived(message) {
+			payload = JSON.parse(message.payloadString);
+			if(chartsInitialized)
+			{
+				options.title = payload.name;
+				dataTable.addRow([new Date(),payload.soundLevel,payload.lightLevel])
+				var excessRows = dataTable.getNumberOfRows()-maxRows;
+				if(excessRows>0) dataTable.removeRows(0,excessRows);
+				chart.draw(dataTable,options);
+			}
+		  console.log("onMessageArrived:"+message.payloadString);
+		}
+
+		function initChart()
+		{
+			options = {
+    			title: "Tessel Sensor Data"
+    		}
+
+			chartsInitialized = true;
+			dataTable = new google.visualization.DataTable();
+			dataTable.addColumn('date', 'Time');
+			dataTable.addColumn('number', 'Sound Sensor');
+			dataTable.addColumn('number', 'Light Sensor');
+			chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+		}
+
+	</script>
+</head>
+<body>
+<div id="chart_div" style="width:800px; height:600px"></div>
+</body>
+</html>
